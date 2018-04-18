@@ -8,10 +8,10 @@ class SelfAttentive(object):
   def build_graph(self, n=60, d=100, u=128, d_a=350, r=30, reuse=False):
     with tf.variable_scope('SelfAttentive', reuse=reuse):
       # Hyperparmeters from paper
-      self.n = n
-      self.d = d
+      self.n = n # 
+      self.d = d # embedding_size
       self.d_a = d_a
-      self.u = u
+      self.u = u # hidden_layer_size
       self.r = r
 
       initializer = tf.contrib.layers.xavier_initializer()
@@ -29,26 +29,26 @@ class SelfAttentive(object):
       self.W_s2 = tf.get_variable('W_s2', shape=[self.r, self.d_a],
           initializer=initializer)
 
-      # BiRNN
+      # BiRNN 双向RNN
       self.batch_size = batch_size = tf.shape(self.input_pl)[0]
 
-      cell_fw = tf.contrib.rnn.LSTMCell(u)
-      cell_bw = tf.contrib.rnn.LSTMCell(u)
+      cell_fw = tf.contrib.rnn.LSTMCell(u) # 前向rnn
+      cell_bw = tf.contrib.rnn.LSTMCell(u)  # 后向rnn
 
       H, _ = tf.nn.bidirectional_dynamic_rnn(
           cell_fw,
           cell_bw,
           input_embed,
-          dtype=tf.float32)
+          dtype=tf.float32) 
+      #返回值是一个(outputs, output_states)的元组
+      # outputs 是(output_fw, output_bw)，是一个包含前向cell输出tensor和后向cell输出tensor组成的元组
+      # output_states为(output_state_fw, output_state_bw)，包含了前向和后向最后的隐藏状态的组成的元组
+      
       H = tf.concat([H[0], H[1]], axis=2)
 
       self.A = A = tf.nn.softmax(
-          tf.map_fn(
-            lambda x: tf.matmul(self.W_s2, x), 
-            tf.tanh(
-              tf.map_fn(
-                lambda x: tf.matmul(self.W_s1, tf.transpose(x)),
-                H))))
+          tf.map_fn(lambda x: tf.matmul(self.W_s2, x), 
+            tf.tanh(tf.map_fn(lambda x: tf.matmul(self.W_s1, tf.transpose(x)), H))))
 
       self.M = tf.matmul(A, H)
 
